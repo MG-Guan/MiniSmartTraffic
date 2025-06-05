@@ -67,7 +67,7 @@ traffic_light/<intersection_id>/command
 
 ```json
 {
-  "command": "Red",                      // One of: "Red", "Amber", "Green", "FlashingRed", "FlashingYellow"
+  "command": "Red",                      // One of: "Red", "Green", "FlashingRed", "FlashingYellow"
   "timeout": 15,                         // Optional, in seconds. Affects only this state cycle
   "timestamp": "2025-06-04T22:02:30Z",
   "source": "admin_panel"
@@ -76,6 +76,7 @@ traffic_light/<intersection_id>/command
 
 **Notes**:
 
+* `command` must be one of: `"Red"`, `"Green"`, `"FlashingRed"`, `"FlashingYellow"`. `Amber` is not used in manual commands.
 * `timeout` is optional. Normally we don't specify this value. If omitted, system defaults are used (e.g., Red = 20s, Yellow = 3s, Green = 20s).
 * For simulating a constant red or constant green state, `timeout` can be set high (e.g., 9999)
 
