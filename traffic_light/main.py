@@ -143,7 +143,6 @@ def main():
         GPIO.cleanup()
         client.loop_stop()
         client.disconnect()
-        cleanup_socket()
 
 if __name__ == "__main__":
     main()
