@@ -10,6 +10,10 @@ import os
 import logging
 import httpx
 
+import paho.mqtt.client as mqtt
+import json
+from datetime import datetime, timezone
+
 # Logger设置
 logger = logging.getLogger("video_stream")
 logger.setLevel(logging.INFO)
@@ -19,6 +23,25 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 UTILITY_API_URL = "http://104.168.34.100:5555/v1/image/alpr"
+
+# -------- MQTT设置 --------
+MQTT_BROKER = 'mqtt-dashboard.com'  # MQTT代理地址
+INTERSECTION_ID = '0'
+MQTT_COMMAND_TOPIC = f'traffic_violation/{INTERSECTION_ID}/detected'
+
+def publish_violation(plate: str, image_bytes: bytes):
+    payload = {
+        "timestamp": datetime.now(timezone.utc).replace(microsecond=0).isoformat() + "Z",
+        "plate": plate,
+        "intersection_id": INTERSECTION_ID,
+        "image": base64.b64encode(image_bytes).decode('utf-8')
+    }
+    try:
+        mqtt_client.publish(MQTT_COMMAND_TOPIC, json.dumps(payload))
+        logger.info(f"Published violation: {payload}")
+    except Exception as e:
+        logger.error(f"Failed to publish violation: {str(e)}")
+
 
 # 异步车牌识别
 async def get_plate(image_bytes: bytes) -> str:
@@ -35,7 +58,8 @@ async def get_plate(image_bytes: bytes) -> str:
         if not predictions:
             logger.info("No plate detected")
             return ""
-        return predictions[0].get("plate", "")
+        plate = predictions[0].get("plate", "")
+        return plate
     except Exception as e:
         logger.error(f"Plate API error: {str(e)}")
         return ""
@@ -89,6 +113,7 @@ async def generate_mjpeg():
             plate = await get_plate(jpeg_bytes)
             if plate:
                 logger.info(f"Detected plate: {plate}")
+                publish_violation(plate, jpeg_bytes)
         finally:
             recognition_running = False
 
@@ -122,5 +147,10 @@ async def root():
     return {"message": "Connect to /video_feed for streaming."}
 
 if __name__ == "__main__":
+    client = mqtt.Client()
+    client.connect(MQTT_BROKER)
+    mqtt_client = client
+    client.loop_start()
+
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
