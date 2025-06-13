@@ -31,6 +31,11 @@ INTERSECTION_ID = '0'
 MQTT_COMMAND_TOPIC = f'traffic_violation/{INTERSECTION_ID}/detected'
 
 def publish_violation(plate: str, image_bytes: bytes):
+    report = (traffic_light["timestamp"],plate)
+    if report in reports:
+        return
+    reports.add(report)
+    
     payload = {
         "timestamp": datetime.now(timezone.utc).replace(microsecond=0).isoformat() + "Z",
         "plate": plate,
@@ -46,7 +51,6 @@ def publish_violation(plate: str, image_bytes: bytes):
 
 # 异步车牌识别
 async def get_plate(image_bytes: bytes) -> str:
-    print(traffic_light)
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
             response = await client.post(
@@ -116,12 +120,14 @@ def monitor_traffic_light():
         except Exception as e:
             logger.warning(f"Failed to read traffic light file: {str(e)}")
         finally:
-            time.sleep(0.1)
+            time.sleep(0.01)
 
 # 启动交通灯监控线程
 traffic_light_thread = threading.Thread(target=monitor_traffic_light, daemon=True)
 traffic_light_thread.start()
 
+# 已经上报的
+reports = set()
 
 # MJPEG流生成（核心改进）
 async def generate_mjpeg():
@@ -150,7 +156,8 @@ async def generate_mjpeg():
         jpeg_bytes = jpeg.tobytes()
 
         # 只跑一个识别异步任务
-        if frame_count % recognition_interval == 0 and not recognition_running:
+        if frame_count % recognition_interval == 0 and not recognition_running and traffic_light and traffic_light['status'] == "Red":
+                
             recognition_running = True
             asyncio.create_task(run_recognition(jpeg_bytes))
 
