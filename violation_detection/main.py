@@ -13,6 +13,7 @@ import httpx
 import paho.mqtt.client as mqtt
 import json
 from datetime import datetime, timezone
+import time
 
 # Logger设置
 logger = logging.getLogger("video_stream")
@@ -45,6 +46,7 @@ def publish_violation(plate: str, image_bytes: bytes):
 
 # 异步车牌识别
 async def get_plate(image_bytes: bytes) -> str:
+    print(traffic_light)
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
             response = await client.post(
@@ -99,6 +101,27 @@ def capture_frames():
         frame_buffer.update(frame)
 capture_thread = threading.Thread(target=capture_frames, daemon=True)
 capture_thread.start()
+
+# 顶层变量用于存储交通灯状态
+traffic_light = {}
+
+# 交通灯状态读取线程
+def monitor_traffic_light():
+    global traffic_light
+    while True:
+        try:
+            with open("/tmp/traffic_light.json", "r") as f:
+                data = json.load(f)
+                traffic_light = data
+        except Exception as e:
+            logger.warning(f"Failed to read traffic light file: {str(e)}")
+        finally:
+            time.sleep(0.1)
+
+# 启动交通灯监控线程
+traffic_light_thread = threading.Thread(target=monitor_traffic_light, daemon=True)
+traffic_light_thread.start()
+
 
 # MJPEG流生成（核心改进）
 async def generate_mjpeg():
