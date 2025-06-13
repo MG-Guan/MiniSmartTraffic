@@ -54,7 +54,7 @@ def publish_status(state):
 
     # Publish to local file.
     with open(TMP_TMP_FILE, 'w') as f:
-        f.write(json.dumps(payload).encode('utf-8'))
+        f.write(json.dumps(payload))
         f.flush()
         os.fsync(f.fileno())
     os.rename(TMP_TMP_FILE, TMP_FILE)  # rename to ensure atomic write
