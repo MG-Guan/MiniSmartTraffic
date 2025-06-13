@@ -1,7 +1,6 @@
 import RPi.GPIO as GPIO
 import time
 from queue import Queue
-import socket
 import os
 
 import paho.mqtt.client as mqtt
@@ -27,16 +26,9 @@ STATE_PINS = {
 }
 STATE_DURATION = 3   # 每个状态10秒
 
-# Local socket settings.
-SOCK_FILE = '/tmp/traffic_light.sock'
-
-def cleanup_socket():
-    """Clean up the socket file if it exists."""
-    if os.path.exists(SOCK_FILE):
-        os.remove(SOCK_FILE)
-
-# Make sure the socket file does not exist.
-cleanup_socket()
+# Local file settings.
+TMP_FILE = '/tmp/traffic_light.json'
+TMP_TMP_FILE = '/tmp/traffic_light.json.tmp'
 
 # -------- MQTT设置 --------
 MQTT_BROKER = 'mqtt-dashboard.com'  # MQTT代理地址
@@ -60,13 +52,12 @@ def publish_status(state):
         "intersection_id": INTERSECTION_ID
     }
 
-    # Publish to sockets.
-    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sock:
-        try:
-            sock.connect(SOCK_FILE)
-            sock.sendall(json.dumps(payload).encode('utf-8'))
-        except socket.error as e:
-            print(f"Socket error: {e}")
+    # Publish to local file.
+    with open(TMP_TMP_FILE, 'w') as f:
+        f.write(json.dumps(payload).encode('utf-8'))
+        f.flush()
+        os.fsync(f.fileno())
+    os.rename(TMP_TMP_FILE, TMP_FILE)  # rename to ensure atomic write
 
     # Publish to MQTT.
     try:
