@@ -1,14 +1,18 @@
 import RPi.GPIO as GPIO
 import time
 from queue import Queue
+import socket
+import os
+
 import paho.mqtt.client as mqtt
 import json
 from datetime import datetime, timezone
 
 # -------- GPIO设置 --------
-RED_PIN = 11      # 物理引脚
-YELLOW_PIN = 13   # 物理引脚
-GREEN_PIN = 15    # 物理引脚
+RED_PIN = 11      # Pin 11
+YELLOW_PIN = 13   # Pin 13
+GREEN_PIN = 15    # Pin 15
+
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(RED_PIN, GPIO.OUT)
 GPIO.setup(YELLOW_PIN, GPIO.OUT)
@@ -22,6 +26,17 @@ STATE_PINS = {
     "Green":   (GPIO.LOW,  GPIO.LOW,  GPIO.HIGH)
 }
 STATE_DURATION = 3   # 每个状态10秒
+
+# Local socket settings.
+SOCK_FILE = '/tmp/traffic_light.sock'
+
+def cleanup_socket():
+    """Clean up the socket file if it exists."""
+    if os.path.exists(SOCK_FILE):
+        os.remove(SOCK_FILE)
+
+# Make sure the socket file does not exist.
+cleanup_socket()
 
 # -------- MQTT设置 --------
 MQTT_BROKER = 'mqtt-dashboard.com'  # MQTT代理地址
@@ -44,6 +59,16 @@ def publish_status(state):
         "status": state,
         "intersection_id": INTERSECTION_ID
     }
+
+    # Publish to sockets.
+    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sock:
+        try:
+            sock.connect(SOCK_FILE)
+            sock.sendall(json.dumps(payload).encode('utf-8'))
+        except socket.error as e:
+            print(f"Socket error: {e}")
+
+    # Publish to MQTT.
     try:
         mqtt_client.publish(MQTT_STATUS_TOPIC, json.dumps(payload), qos=1)
     except Exception as e:
@@ -121,12 +146,13 @@ def main():
     except KeyboardInterrupt:
         print("Ctrl+C 退出 清理GPIO ...")
     finally:
-        # GPIO.output(RED_PIN, GPIO.LOW)
-        # GPIO.output(YELLOW_PIN, GPIO.LOW)
-        # GPIO.output(GREEN_PIN, GPIO.LOW)
-        # GPIO.cleanup()
+        GPIO.output(RED_PIN, GPIO.LOW)
+        GPIO.output(YELLOW_PIN, GPIO.LOW)
+        GPIO.output(GREEN_PIN, GPIO.LOW)
+        GPIO.cleanup()
         client.loop_stop()
         client.disconnect()
+        cleanup_socket()
 
 if __name__ == "__main__":
     main()
