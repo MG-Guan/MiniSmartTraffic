@@ -39,7 +39,7 @@ def publish_violation(plate: str, image_bytes: bytes):
     }
     try:
         mqtt_client.publish(MQTT_COMMAND_TOPIC, json.dumps(payload))
-        logger.info(f"Published violation: {payload}")
+        logger.info(f"Published violation: {payload}"[:150])
     except Exception as e:
         logger.error(f"Failed to publish violation: {str(e)}")
 
