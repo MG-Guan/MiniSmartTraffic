@@ -1,13 +1,11 @@
-<!--cd traffic_light-->
+<!--cd traffic_light_web-->
 <!--npm run serve-->
 <template>
   <div>
-    <!-- 固定标题 -->
     <div class="header">
       Smart Traffic Light System
     </div>
 
-    <!-- 主体区域（左右布局） -->
     <div class="app-container">
       <div class="sidebar">
         <div class="status">
@@ -34,7 +32,6 @@
         </div>
       </div>
 
-      <!-- 右侧主区域 -->
       <div class="main-content">
             <ViolationList />
       </div>
@@ -43,29 +40,53 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 import ViolationList from './ViolationList.vue'
 
 const trafficStatus = ref('Red')
 const lastUpdate = ref('2025-06-05 00:00:00')
-const commands = ['Red', 'Green', 'Flashing Red', 'Flashing Yellow', 'Constant Red', 'Constant Green']
+const commands = ['Red', 'Green', 'Yellow', 'Auto']
 
 const statusColor = computed(() => {
   switch (trafficStatus.value) {
     case 'Red': return 'red'
     case 'Green': return 'green'
-    case 'Flashing Red': return 'orange'
-    case 'Flashing Yellow': return 'gold'
-    case 'Constant Red': return 'darkred'
-    case 'Constant Green': return 'darkgreen'
+    case 'Yellow': return 'gold'
+    case 'Auto': return 'gray'  
     default: return 'gray'
   }
 })
 
 function handleControl(cmd) {
-  console.log('Control command sent:', cmd)
-  // TODO: 将来这里用 axios.post('/api/control', { command: cmd })
+  axios.post('http://localhost:5000/api/control', {
+    command: cmd,
+    intersection_id: "0"
+  })
+  .then(res => {
+    console.log(" Control command sent:", res.data)
+  })
+  .catch(err => {
+    console.error(" Control command failed:", err)
+  })
+
 }
+
+function fetchLightStatus() {
+  axios.get('http://localhost:5000/api/light_status/0')
+    .then(res => {
+      trafficStatus.value = res.data.status || 'Unknown'
+      lastUpdate.value = new Date().toLocaleString()
+    })
+    .catch(err => {
+      console.error('Failed to fetch light status:', err)
+    })
+}
+
+onMounted(() => {
+  fetchLightStatus()
+  setInterval(fetchLightStatus, 2000)  
+})
 
 </script>
 
@@ -100,10 +121,10 @@ button.active {
   align-items: center;
 }
 
-/* 主体区下移避免被标题遮住 */
+
 .app-container {
   display: flex;
-  padding-top: 50px; /* 避免被顶部标题遮住 */
+  padding-top: 50px; 
   height: calc(100vh - 50px);
 }
 
@@ -112,7 +133,6 @@ button.active {
   padding: 20px;
   border-right: 1px solid #ccc;
   background-color: #f9f9f9;
-  /* 修改这里：不要 space-between，只让元素正常竖排 */
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -139,7 +159,7 @@ button.active {
 .control {
   margin-top: 20px;
   display: flex;
-  flex-direction: column; /* ✅ 按钮竖直排列 */
+  flex-direction: column; 
   gap: 10px;
 }
 
