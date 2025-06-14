@@ -1,6 +1,6 @@
 <template>
   <div class="card">
-    <img class="card-image" :src="record.image" alt="Violation Image" />
+    <img :src="`data:image/jpeg;base64,${record.image}`" alt="Violation" class="violation-image"/>
     <ul class="card-info">
       <li><strong>Type:</strong> {{ record.type }}</li>
       <li><strong>Timestamp:</strong> {{ record.timestamp }}</li>
@@ -11,7 +11,7 @@
 </template>
 
 <script setup>
-// 使用 defineProps 并直接引用 record，不定义 props 变量
+
 defineProps({
   record: {
     type: Object,
@@ -49,5 +49,13 @@ defineProps({
 
 .card-info li {
   margin-bottom: 8px;
+}
+
+.violation-image {
+  width: 240px;      
+  height: 160px;    
+  object-fit: cover; 
+  border-radius: 8px;
+  border: 1px solid #ccc;
 }
 </style>
