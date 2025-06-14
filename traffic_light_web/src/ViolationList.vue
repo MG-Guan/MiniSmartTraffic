@@ -1,7 +1,7 @@
 <template>
     <div class="violation-list">
   
-      <!-- 分页区域 -->
+      
       <div class="pagination sticky">
       <div class="pagination">
         <button @click="goToPage(1)" :disabled="page === 1">≪ first</button>
@@ -30,7 +30,6 @@
       </div>
      </div>
 
-            <!-- 卡片展示区 -->
             <ViolationCard
         v-for="record in paginatedRecords"
         :key="record.id"
@@ -45,7 +44,7 @@
   import axios from 'axios'
   import ViolationCard from './ViolationCard.vue'
   
-  // 模拟假数据 22 条
+  // 
   //const mockRecords = Array.from({ length: 60 }, (_, i) => ({
   //  id: i + 1,
   //  image: `https://via.placeholder.com/240x320.png?text=Car+${i + 1}`,
@@ -94,8 +93,8 @@
     records.value = res.data.data
     total.value = res.data.total
   } catch (err) {
-    console.error('请求失败:', err)
-    console.error('请求失败:', p)
+    console.error('err:', err)
+    console.error('err:', p)
   }
 }
   
@@ -129,7 +128,7 @@
 }
 
 .pagination {
-  margin-bottom: 20px; /* ✅ 现在是分页在上，就用 margin-bottom */
+  margin-bottom: 20px; 
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
