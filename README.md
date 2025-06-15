@@ -53,6 +53,7 @@ A modular smart traffic light system leveraging computer vision and IoT protocol
     ```
 
 4. **Start violation detection:**
+   
    Build the docker image using the Dockerfile in `violation_detection` and spin up an container on a x86_64 machine using the built image exposing `5000` to the host as the numberplate recognition API.
     ```bash
     cd ../violation_detection
