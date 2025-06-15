@@ -15,7 +15,7 @@ import json
 from datetime import datetime, timezone
 import time
 
-# Logger设置
+# Logger configuration
 logger = logging.getLogger("video_stream")
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
@@ -25,13 +25,13 @@ logger.addHandler(handler)
 
 UTILITY_API_URL = "http://104.168.34.100:5555/v1/image/alpr"
 
-# -------- MQTT设置 --------
-MQTT_BROKER = 'mqtt-dashboard.com'  # MQTT代理地址
+# -------- MQTT Settings --------
+MQTT_BROKER = 'mqtt-dashboard.com'  # MQTT broker address
 INTERSECTION_ID = '0'
 MQTT_COMMAND_TOPIC = f'traffic_violation/{INTERSECTION_ID}/detected'
 
 def publish_violation(plate: str, image_bytes: bytes):
-    report = (traffic_light["timestamp"],plate)
+    report = (traffic_light["timestamp"], plate)
     if report in reports:
         return
     reports.add(report)
@@ -49,7 +49,7 @@ def publish_violation(plate: str, image_bytes: bytes):
         logger.error(f"Failed to publish violation: {str(e)}")
 
 
-# 异步车牌识别
+# Asynchronous license plate recognition
 async def get_plate(image_bytes: bytes) -> str:
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
@@ -72,7 +72,7 @@ async def get_plate(image_bytes: bytes) -> str:
 
 app = FastAPI()
 
-# 摄像头初始化
+# Camera initialization
 picam2 = Picamera2()
 config = picam2.create_video_configuration(
     main={"size": (640, 480)},
@@ -81,7 +81,7 @@ config = picam2.create_video_configuration(
 picam2.configure(config)
 picam2.start()
 
-# 线程安全FrameBuffer
+# Thread-safe FrameBuffer
 class FrameBuffer:
     def __init__(self):
         self.frame = None
@@ -97,7 +97,7 @@ class FrameBuffer:
         return None
 frame_buffer = FrameBuffer()
 
-# 相机采集线程
+# Camera frame capture thread
 def capture_frames():
     while True:
         frame = picam2.capture_array()
@@ -106,10 +106,10 @@ def capture_frames():
 capture_thread = threading.Thread(target=capture_frames, daemon=True)
 capture_thread.start()
 
-# 顶层变量用于存储交通灯状态
+# Top-level variable for storing traffic light status
 traffic_light = {}
 
-# 交通灯状态读取线程
+# Traffic light status monitoring thread
 def monitor_traffic_light():
     global traffic_light
     while True:
@@ -122,19 +122,19 @@ def monitor_traffic_light():
         finally:
             time.sleep(0.01)
 
-# 启动交通灯监控线程
+# Start traffic light monitoring thread
 traffic_light_thread = threading.Thread(target=monitor_traffic_light, daemon=True)
 traffic_light_thread.start()
 
-# 已经上报的
+# Already reported violations
 reports = set()
 
-# MJPEG流生成（核心改进）
+# MJPEG stream generator (core improvement)
 async def generate_mjpeg():
     frame_count = 0
-    recognition_interval = 30  # 每30帧识别一次（大约每秒）
+    recognition_interval = 30  # Recognize every 30 frames (approximately every second)
 
-    recognition_running = False  # 本地状态
+    recognition_running = False  # Local state
 
     async def run_recognition(jpeg_bytes):
         nonlocal recognition_running
@@ -147,7 +147,7 @@ async def generate_mjpeg():
             recognition_running = False
 
     while True:
-        # 拿帧在独立线程，避免锁主事件环
+        # Fetch frame in a separate thread to avoid blocking the main event loop
         frame = await asyncio.to_thread(frame_buffer.get_frame)
         if frame is None:
             await asyncio.sleep(0.01)
@@ -155,7 +155,7 @@ async def generate_mjpeg():
         _, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
         jpeg_bytes = jpeg.tobytes()
 
-        # 只跑一个识别异步任务
+        # Run only one recognition async task
         if frame_count % recognition_interval == 0 and not recognition_running and traffic_light and traffic_light['status'] == "Red":
                 
             recognition_running = True
@@ -165,7 +165,7 @@ async def generate_mjpeg():
                b'Content-Type: image/jpeg\r\n\r\n' + 
                jpeg_bytes + b'\r\n')
         frame_count += 1
-        await asyncio.sleep(0.033)  # 稍等以保持30fps
+        await asyncio.sleep(0.033)  # Wait slightly to maintain 30fps
 
 @app.get("/video_feed")
 async def video_feed():

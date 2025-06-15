@@ -2,7 +2,7 @@
 
 ## MQTT Broker Assumptions
 
-* **Broker Type**: HiveMQ or Mosquitto
+* **Broker Type**: HiveMQ
 * **Max Payload Size**: ≤10 MB (binary encoded as base64)
 * **QoS Levels**:
 
@@ -27,7 +27,7 @@ traffic_light/<intersection_id>/status
 ```json
 {
   "timestamp": "2025-06-04T22:01:00Z",
-  "status": "Red",               // "Red", "Amber", "Green", "FlashingRed", "FlashingYellow"
+  "status": "Red",               // "Red", "Green", "Yellow"
   "intersection_id": "0"
 }
 ```
@@ -46,7 +46,7 @@ Since we only have one intersection, the `intersection_id` will be `0`.
 ```json
 {
   "timestamp": "2025-06-04T22:01:00Z",
-  "status": "FlashingYellow",
+  "status": "Yellow",
   "intersection_id": "0"
 }
 ```
@@ -67,18 +67,12 @@ traffic_light/<intersection_id>/command
 
 ```json
 {
-  "command": "Red",                      // One of: "Red", "Green", "FlashingRed", "FlashingYellow"
-  "timeout": 15,                         // Optional, in seconds. Affects only this state cycle
+  "command": "Red",                      // One of: "Red", "Green", "Yellow", "Auto" ("Auto" means back to auto mode)
+  "timeout": 9999,                       // Optional
   "timestamp": "2025-06-04T22:02:30Z",
   "source": "admin_panel"
 }
 ```
-
-**Notes**:
-
-* `command` must be one of: `"Red"`, `"Green"`, `"FlashingRed"`, `"FlashingYellow"`. `Amber` is not used in manual commands.
-* `timeout` is optional. Normally we don't specify this value. If omitted, system defaults are used (e.g., Red = 20s, Yellow = 3s, Green = 20s).
-* For simulating a constant red or constant green state, `timeout` can be set high (e.g., 9999)
 
 **Example**:
 

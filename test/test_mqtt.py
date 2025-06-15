@@ -16,18 +16,14 @@ def test_publish_status(mqtt_client, topic, state):
         print(f"MQTT publish failed: {e}")
 
 if __name__ == "__main__":
-    # MQTT配置
     MQTT_BROKER = "mqtt-dashboard.com"
 
     MQTT_STATUS_TOPIC = "traffic_light/0/status"
     
-    # 创建MQTT客户端
     mqtt_client = mqtt.Client()
     mqtt_client.port = 8884
     mqtt_client.connect(MQTT_BROKER)
     
-    # 测试发布状态
     test_publish_status(mqtt_client, MQTT_STATUS_TOPIC, "Green")
     
-    # 断开连接
     mqtt_client.disconnect()
